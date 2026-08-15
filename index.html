@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>할 일 · TODO</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%235b5bd6'/%3E%3Cpath d='M6.5 12.5l3.6 3.6 7.4-8' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+<script>
+  // 첫 페인트 전에 테마를 적용해 깜빡임을 막는다.
+  try {
+    var p = JSON.parse(localStorage.getItem('todo.prefs.v1') || '{}');
+    var t = p.theme === 'light' || p.theme === 'dark'
+      ? p.theme
+      : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9.2a3 3 0 1 1 4.3 2.9c-.9.4-1.4 1-1.4 1.9v.3"/><path d="M12 17.6h.01"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 21V9"/><path d="M7 13l5-5 5 5"/><path d="M4 4h16"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01" stroke-width="2.4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
+
+<div class="app">
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg class="i" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></svg>
+      </span>
+      <div>
+        <h1>할 일</h1>
+        <p class="today" id="today"></p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="icon-btn" id="theme-btn" title="테마 변경" aria-label="테마 변경">
+        <svg class="i"><use href="#i-monitor" id="theme-icon"></use></svg>
+      </button>
+      <button type="button" class="icon-btn" id="help-btn" title="단축키 도움말 (?)" aria-label="단축키 도움말">
+        <svg class="i"><use href="#i-help"></use></svg>
+      </button>
+    </div>
+  </header>
+
+  <form class="new-form" id="new-form" autocomplete="off">
+    <div class="new-main">
+      <input class="new-input" id="new-input" type="text" maxlength="200"
+             placeholder="무엇을 해야 하나요?" aria-label="새 할 일 내용">
+      <button class="btn btn-primary" type="submit">
+        <svg class="i"><use href="#i-plus"></use></svg><span>추가</span>
+      </button>
+    </div>
+    <div class="new-opts">
+      <label class="field">
+        <span>우선순위</span>
+        <select id="new-priority">
+          <option value="high">높음</option>
+          <option value="normal" selected>보통</option>
+          <option value="low">낮음</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>마감일</span>
+        <input type="date" id="new-due">
+      </label>
+    </div>
+  </form>
+
+  <section class="toolbar" aria-label="목록 도구">
+    <div class="search">
+      <svg class="i search-icon" aria-hidden="true"><use href="#i-search"></use></svg>
+      <input type="search" id="search" placeholder="검색 (/)" aria-label="할 일 검색">
+    </div>
+    <div class="filters" role="group" aria-label="필터">
+      <button type="button" class="chip" data-filter="all" aria-pressed="true">전체 <b class="cnt" id="cnt-all">0</b></button>
+      <button type="button" class="chip" data-filter="active" aria-pressed="false">진행 중 <b class="cnt" id="cnt-active">0</b></button>
+      <button type="button" class="chip" data-filter="done" aria-pressed="false">완료 <b class="cnt" id="cnt-done">0</b></button>
+    </div>
+    <label class="field sort-field">
+      <span>정렬</span>
+      <select id="sort">
+        <option value="manual">직접 정렬</option>
+        <option value="due">마감일순</option>
+        <option value="priority">우선순위순</option>
+        <option value="created">최신순</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="progress" aria-label="진행률">
+    <div class="bar" id="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="bar-fill" id="bar-fill"></div>
+    </div>
+    <span class="progress-text" id="progress-text">0%</span>
+  </section>
+
+  <ul class="list" id="list" tabindex="-1"></ul>
+
+  <div class="empty" id="empty" hidden>
+    <p class="empty-title" id="empty-title"></p>
+    <p class="empty-sub" id="empty-sub"></p>
+  </div>
+
+  <footer class="app-footer">
+    <span class="summary" id="summary"></span>
+    <div class="footer-actions">
+      <button type="button" class="btn btn-quiet" id="toggle-all">전체 완료</button>
+      <button type="button" class="btn btn-quiet" id="clear-done">완료 항목 삭제</button>
+      <button type="button" class="btn btn-quiet" id="export-btn" title="JSON으로 내보내기">
+        <svg class="i"><use href="#i-download"></use></svg><span>내보내기</span>
+      </button>
+      <button type="button" class="btn btn-quiet" id="import-btn" title="JSON에서 가져오기">
+        <svg class="i"><use href="#i-upload"></use></svg><span>가져오기</span>
+      </button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast" hidden>
+  <span id="toast-msg"></span>
+  <button type="button" class="toast-action" id="toast-action" hidden></button>
+</div>
+
+<dialog class="help" id="help-dialog">
+  <form method="dialog" class="help-head">
+    <h2>단축키</h2>
+    <button class="icon-btn" value="close" aria-label="닫기"><svg class="i"><use href="#i-x"></use></svg></button>
+  </form>
+  <dl class="help-list">
+    <dt><kbd>N</kbd></dt><dd>새 할 일 입력창으로 이동</dd>
+    <dt><kbd>/</kbd></dt><dd>검색창으로 이동</dd>
+    <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>전체 / 진행 중 / 완료 필터</dd>
+    <dt><kbd>Enter</kbd></dt><dd>추가 또는 편집 저장</dd>
+    <dt><kbd>Esc</kbd></dt><dd>편집 취소 · 검색어 지우기</dd>
+    <dt><kbd>Alt</kbd> + <kbd>↑</kbd> <kbd>↓</kbd></dt><dd>선택한 항목 순서 이동 (직접 정렬일 때)</dd>
+    <dt><kbd>?</kbd></dt><dd>이 도움말 열기 / 닫기</dd>
+  </dl>
+  <p class="help-note">할 일은 이 브라우저의 localStorage에 저장됩니다. 백업하려면 <b>내보내기</b>를 사용하세요.</p>
+</dialog>
+
+<template id="tpl-item">
+  <li class="item" draggable="true">
+    <span class="grip" aria-hidden="true"><svg class="i"><use href="#i-grip"></use></svg></span>
+    <input type="checkbox" class="check">
+    <div class="body">
+      <span class="title"></span>
+      <span class="meta">
+        <span class="badge badge-prio"></span>
+        <span class="badge badge-due"></span>
+      </span>
+    </div>
+    <div class="row-actions">
+      <button type="button" class="icon-btn btn-edit" aria-label="편집" title="편집"><svg class="i"><use href="#i-pencil"></use></svg></button>
+      <button type="button" class="icon-btn btn-del" aria-label="삭제" title="삭제"><svg class="i"><use href="#i-trash"></use></svg></button>
+    </div>
+  </li>
+</template>
+
+<template id="tpl-edit">
+  <li class="item editing">
+    <form class="edit-form">
+      <input type="text" class="edit-title" maxlength="200" aria-label="할 일 내용">
+      <div class="edit-opts">
+        <label class="field">
+          <span>우선순위</span>
+          <select class="edit-prio">
+            <option value="high">높음</option>
+            <option value="normal">보통</option>
+            <option value="low">낮음</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>마감일</span>
+          <input type="date" class="edit-due">
+        </label>
+        <div class="edit-buttons">
+          <button type="submit" class="btn btn-primary">저장</button>
+          <button type="button" class="btn btn-quiet edit-cancel">취소</button>
+        </div>
+      </div>
+    </form>
+  </li>
+</template>
+
+<p class="sr-only" id="announcer" role="status" aria-live="polite"></p>
+
+<script src="app.js"></script>
+</body>
+</html>
